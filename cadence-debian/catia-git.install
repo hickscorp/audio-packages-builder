@@ -1,0 +1,12 @@
+/usr/bin/catia
+
+/usr/share/icons/hicolor/scalable/apps/catia.svg
+/usr/share/icons/hicolor/48x48/apps/catia.png
+/usr/share/icons/hicolor/16x16/apps/catia.png
+/usr/share/icons/hicolor/256x256/apps/catia.png
+/usr/share/icons/hicolor/128x128/apps/catia.png
+
+/usr/share/cadence/src/catia.py
+/usr/share/cadence/src/ui_catia.py
+
+/usr/share/applications/catia.desktop
