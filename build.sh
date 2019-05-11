@@ -2,7 +2,7 @@
 set -e
 BASE_PATH="$(cd "$(dirname "$0")" ; pwd -P)"
 
-mkdir -p $BASE_PATH/_build $BASE_PATH/debs
+mkdir -p $BASE_PATH/_build
 
 function installMissing {
   stringarray=($1)
@@ -24,44 +24,47 @@ function buildCadence {
   mkdir -p $BUILD_PATH
 
   echo "  - Installing missing dependencies..."
-  BUILD_DEPS="debhelper fakeroot libdrm-dev libexpat1-dev libfreetype6-dev libglib2.0-dev libglvnd-core-dev libglvnd-dev libice-dev libpcre3-dev libpixman-1-dev libpng-dev libpthread-stubs0-dev libsm-dev libx11-xcb-dev libxau-dev libxcb-dri2-0-dev libxcb-dri3-dev libxcb-glx0-dev libxcb-present-dev libxcb-randr0-dev libxcb-render0-dev libxcb-shape0-dev libxcb-shm0-dev libxcb-sync-dev libxcb-xfixes0-dev libxcb1-dev libxdamage-dev libxdmcp-dev libxext-dev libxfixes-dev libxrender-dev libxshmfence-dev libxxf86vm-dev libx11-dev libruby2.5 rake ruby-minitest ruby-net-telnet ruby-power-assert ruby-test-unit ruby-xmlrpc ruby2.5 rubygems-integration uuid-dev x11proto-core-dev x11proto-damage-dev x11proto-dev x11proto-fixes-dev x11proto-xext-dev x11proto-xf86vidmode-dev libglib2.0-dev-bin xtrans-dev portaudio19-dev libjack-jackd2-dev libfftw3-dev libxpm-dev libfltk1.3-dev liblash-compat-dev"
-  installMissing "$BUILD_DEPS \
-    fonts-lato libcairo-script-interpreter2 libfftw3-bin libfftw3-long3 libfftw3-quad3 libgles1 \
-    liblash-compat-1debian0 libopengl0 libpcre16-3 libpcre32-3 libpng-tools python3-dbus.mainloop.pyqt5 \
-  "
+  BUILD_TOOLS="build-essential git libtool automake"
+  BUILD_DEPS="qtbase5-dev pyqt5-dev-tools"
+  DEPS="qt5-default python3-dbus.mainloop.pyqt5 python3-pyqt5.qtsvg ladish jack-capture"
+  installMissing "$BUILD_TOOLS $BUILD_DEPS $DEPS"
 
   echo "  - Cloning source code repository..."
   [ -e $REPO_PATH ] && rm -rf $REPO_PATH
   git clone https://github.com/falkTX/Cadence.git $REPO_PATH
   cd $REPO_PATH
 
-  echo "  - Copying packaging files..."
-  cp -pr  $BASE_PATH/cadence-debian ./debian
+  echo "  - Building and installing Cadence binaries..."
+  make && sudo make install
 
-  echo "  - Patching packaging files to match git build..."
-  CURRENTBUILDDATE=$(LANG=en_us_88591; date --utc '+%a, %d %b %Y %H:%M:%S %z')
-  CURRENTDATE=$(LANG=en_us_88591; date +%Y%m%d)
-  CURRENTGITHASH=$(git rev-parse --short=8 HEAD)
-  sed -i "s/insertdate/$CURRENTDATE/g" debian/changelog
-  sed -i "s/githash/$CURRENTGITHASH/g" debian/changelog
-  sed -i "s/buildtimeanddate/$CURRENTBUILDDATE/g" debian/changelog
+  echo "  - You might want to uninstall the following dev dependencies if you don't need them:"
+  echo "    $BUILD_DEPS"
+  echo "  - Cleaning up..."
+}
 
-  echo "  - Please wait - building packages..."
-  dpkg-buildpackage -uc -us -b
+function buildCarla {
+  echo "- Running cadence build script..."
+  BUILD_PATH=$BASE_PATH/_build/carla
+  REPO_PATH=$BUILD_PATH/carla-git
+  mkdir -p $BUILD_PATH
 
-  echo "  - Copying built packages in safe location..."
-  [ -e $BASE_PATH/debs/cadence ] && rm -rf $BASE_PATH/debs/cadence
-  mkdir -p $BASE_PATH/debs/cadence
-  cp $BUILD_PATH/*.deb $BASE_PATH/debs/cadence/
+  echo "  - Installing missing dependencies..."
+  BUILD_TOOLS="build-essential git libtool automake"
+  BUILD_DEPS="libmagic-dev liblo-dev qtbase5-dev pyqt5-dev-tools libx11-dev libasound2-dev libpulse-dev libgtk2.0-dev libgtk-3-dev libqt4-dev libsndfile1-dev libfluidsynth-dev"
+  DEPS="fluidsynth python3-rdflib qt5-default liblo7 python3-liblo"
+  installMissing "$BUILD_TOOLS $BUILD_DEPS $DEPS"
 
-  echo "  - Installing cadence packages..."
-  cd $BASE_PATH
-  for pkg in cadence-data cadence-toolscatarina catia claudia cadence; do
-    sudo dpkg -i $BASE_PATH/debs/cadence/${pkg}-git_*_*.deb
-  done
+  echo "  - Cloning source code repository..."
+  [ -e $REPO_PATH ] && rm -rf $REPO_PATH
+  git clone https://github.com/falkTX/Carla $REPO_PATH
+  cd $REPO_PATH
 
-  echo "  - Uninstalling build dependencies..."
-  sudo apt remove --yes --purge $BUILD_DEPS
+  echo "  - Building and installing Carla binaries..."
+  make && sudo make install
+
+  echo "  - You might want to uninstall the following dev dependencies if you don't need them:"
+  echo "    $BUILD_DEPS"
+  echo "  - Cleaning up..."
 }
 
 function buildZynfusion {
@@ -71,36 +74,35 @@ function buildZynfusion {
   mkdir -p $BUILD_PATH
 
   echo "  - Installing missing dependencies..."
-  BUILD_DEPS="liblash-compat-dev pyqt5-dev-tools qt5-default qtbase5-dev"
-  installMissing "$BUILD_DEPS \
-    liblash-compat-1debian0 python3-pyqt5\
-  "
+  BUILD_TOOLS="build-essential git ruby libtool automake cmake bison cxxtest"
+  BUILD_DEPS="libmxml-dev libfftw3-dev libjack-jackd2-dev liblo-dev libz-dev libasound2-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libcairo2-dev libfontconfig1-dev portaudio19-dev"
+  DEPS="libmxml1 libjack-jackd2-0 libfftw3-long3 libfftw3-quad3 liblo7 libasound2 libgl1-mesa-glx libglu1-mesa libcairo2 libportaudio2"
+  installMissing "$BUILD_TOOLS $BUILD_DEPS $DEPS"
 
   echo "  - Cloning source code repository..."
   [ -e $REPO_PATH ] && rm -rf $REPO_PATH
   git clone https://github.com/zynaddsubfx/zyn-fusion-build $REPO_PATH
   cd $REPO_PATH
 
-  echo "  - Please wait - building packages..."
+  echo "  - Please wait - building Zyn-Fusion..."
   sudo rm /usr/lib/lv2/ZynAddSubFX.lv2presets || true
   ruby build-linux.rb
 
   echo "  - Copying built packages in safe location..."
   cd $BUILD_PATH
-  [ -e $BASE_PATH/debs/zynfusion ] && rm -rf $BASE_PATH/debs/zynfusion
-  mkdir -p $BASE_PATH/debs/zynfusion
-  cp $REPO_PATH/*.bz2 $BASE_PATH/debs/zynfusion/
 
   tmp=$(mktemp -d)
-  tar -jxf $BASE_PATH/debs/zynfusion/zyn-fusion-linux-64bit-3.0.3-patch1-release.tar.bz2 -C $tmp
-  ls $tmp
+  tar -jxf $REPO_PATH/zyn-fusion-linux-64bit-3.0.3-patch1-release.tar.bz2 -C $tmp
   cd $tmp/zyn-fusion
   sudo ./install-linux.sh
   rm -rf $tmp
 
-  echo "  - Uninstalling build dependencies..."
-  sudo apt remove --yes --purge $BUILD_DEPS
+  echo "  - You might want to uninstall the following dev dependencies if you don't need them:"
+  echo "    $BUILD_DEPS"
 }
 
 buildCadence
+buildCarla
 buildZynfusion
+
+rm -rf _build
