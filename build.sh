@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
 BASE_PATH="$(cd "$(dirname "$0")" ; pwd -P)"
-
-mkdir -p $BASE_PATH/_build
+BUILD_PATH=$BASE_PATH/_build
+mkdir -p $BUILD_PATH
 
 function installMissing {
   stringarray=($1)
@@ -19,9 +19,7 @@ function installMissing {
 
 function buildCadence {
   echo "- Running cadence build script..."
-  BUILD_PATH=$BASE_PATH/_build/cadence
-  REPO_PATH=$BUILD_PATH/cadence-git
-  mkdir -p $BUILD_PATH
+  REPO_PATH=$BUILD_PATH/cadence
 
   echo "  - Installing missing dependencies..."
   BUILD_TOOLS="build-essential git libtool automake"
@@ -44,9 +42,7 @@ function buildCadence {
 
 function buildCarla {
   echo "- Running cadence build script..."
-  BUILD_PATH=$BASE_PATH/_build/carla
-  REPO_PATH=$BUILD_PATH/carla-git
-  mkdir -p $BUILD_PATH
+  REPO_PATH=$BUILD_PATH/carla
 
   echo "  - Installing missing dependencies..."
   BUILD_TOOLS="build-essential git libtool automake"
@@ -69,9 +65,7 @@ function buildCarla {
 
 function buildZynfusion {
   echo "- Running Zyn-Fusion build script..."
-  BUILD_PATH=$BASE_PATH/_build/zynfusion
-  REPO_PATH=$BUILD_PATH/zynfusion-git
-  mkdir -p $BUILD_PATH
+  REPO_PATH=$BUILD_PATH/zynfusion
 
   echo "  - Installing missing dependencies..."
   BUILD_TOOLS="build-essential git ruby libtool automake cmake bison cxxtest"
@@ -89,8 +83,6 @@ function buildZynfusion {
   ruby build-linux.rb
 
   echo "  - Copying built packages in safe location..."
-  cd $BUILD_PATH
-
   tmp=$(mktemp -d)
   tar -jxf $REPO_PATH/zyn-fusion-linux-64bit-3.0.3-patch1-release.tar.bz2 -C $tmp
   cd $tmp/zyn-fusion
@@ -101,8 +93,62 @@ function buildZynfusion {
   echo "    $BUILD_DEPS"
 }
 
-buildCadence
-buildCarla
-buildZynfusion
+function buildWolfShaper() {
+  echo "- Running Wolf-Shaper build script..."
+  REPO_PATH=$BUILD_PATH/wolfshaper
 
+  echo "  - Installing missing dependencies..."
+
+  echo "  - Cloning source code repository..."
+  [ -e $REPO_PATH ] && rm -rf $REPO_PATH
+  git clone --recursive https://github.com/pdesaulniers/wolf-shaper.git $REPO_PATH
+  cd $REPO_PATH
+
+  echo "  - Please wait - building Wolf-Shaper..."
+  BUILD_VST2=true BUILD_LV2=true BUILD_DSSI=true BUILD_JACK=true make
+
+  echo "  - Build complete, installing..."
+  sudo make install
+}
+
+function buildWolfSpectrum() {
+  echo "- Running Wolf-Spectrum build script..."
+  REPO_PATH=$BUILD_PATH/wolfspectrum
+
+  echo "  - Installing missing dependencies..."
+
+  echo "  - Cloning source code repository..."
+  [ -e $REPO_PATH ] && rm -rf $REPO_PATH
+  git clone --recursive https://github.com/pdesaulniers/wolf-spectrum.git $REPO_PATH
+  cd $REPO_PATH
+
+  echo "  - Please wait - building Wolf-Spectrum..."
+   BUILD_VST2=true BUILD_LV2=true BUILD_JACK=true make
+
+  echo "  - Build complete, installing..."
+  sudo make install
+}
+
+for thing in $@; do
+  case $thing in
+    "cadence")
+      buildCadence
+      ;;
+    "carla")
+      buildCarla
+      ;;
+    "zynfusion")
+      buildZynfusion
+      ;;
+    "wolfshaper")
+      buildWolfShaper
+      ;;
+    "wolfspectrum")
+      buildWolfSpectrum
+      ;;
+    *)
+      echo "Unlnown build option $thing."
+      ;;
+  esac
+done
 rm -rf _build
